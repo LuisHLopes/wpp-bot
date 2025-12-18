@@ -1,4 +1,4 @@
-# app.py — WhatsApp bot (Flask + Twilio) — Decision Tree + DB
+# app.py — WhatsApp bot (Flask + Twilio) — Decision Tree + DB (FIXED)
 
 import logging
 from flask import Flask, request
@@ -16,9 +16,17 @@ from db import (
     log_flow_event
 )
 
+# ------------------------
+# States
+# ------------------------
+
 STATE_MENU = "MENU"
 STATE_SUPPORT_DESC = "SUPPORT_DESC"
 STATE_SUPPORT_URGENCY = "SUPPORT_URGENCY"
+
+# ------------------------
+# App setup
+# ------------------------
 
 app = Flask(__name__)
 init_db()
@@ -27,6 +35,10 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+# ------------------------
+# Webhook
+# ------------------------
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp_bot():
@@ -42,7 +54,10 @@ def whatsapp_bot():
     response = MessagingResponse()
     msg = response.message()
 
+    # ------------------------
     # GLOBAL COMMANDS
+    # ------------------------
+
     if incoming_lower in ("menu", "start"):
         set_user_state(phone, STATE_MENU)
         msg.body(
@@ -53,7 +68,10 @@ def whatsapp_bot():
         )
         return str(response)
 
-    # DECISION TREE
+    # ------------------------
+    # DECISION TREE (STATE FIRST)
+    # ------------------------
+
     if state == STATE_MENU:
         if incoming_lower == "1":
             set_user_state(phone, None)
@@ -76,14 +94,18 @@ def whatsapp_bot():
             msg.body("👤 Um atendente humano entrará em contato.")
             return str(response)
 
-    elif state == STATE_SUPPORT_DESC:
+        # Texto inválido no menu
+        msg.body("❗ Por favor, escolha 1, 2 ou 3.")
+        return str(response)
+
+    if state == STATE_SUPPORT_DESC:
         save_support_description(phone, incoming_msg)
         log_flow_event(phone, "SUPPORT_DESCRIPTION")
         set_user_state(phone, STATE_SUPPORT_URGENCY)
         msg.body("⚠️ Qual a urgência do problema? (baixa / média / alta)")
         return str(response)
 
-    elif state == STATE_SUPPORT_URGENCY:
+    if state == STATE_SUPPORT_URGENCY:
         urgency = incoming_lower
         if urgency not in ("baixa", "media", "média", "alta"):
             msg.body("Por favor, responda com: baixa, média ou alta.")
@@ -97,7 +119,10 @@ def whatsapp_bot():
         msg.body("✅ Chamado registrado com sucesso!")
         return str(response)
 
-    # INTENT DETECTION (GLOBAL)
+    # ------------------------
+    # INTENT DETECTION (ONLY IF NO STATE)
+    # ------------------------
+
     intent, confidence = detect_intent(incoming_msg)
     logging.info(f"INTENT={intent} CONFIDENCE={confidence}")
 
@@ -140,6 +165,9 @@ def whatsapp_bot():
 
     return str(response)
 
+# ------------------------
+# Run
+# ------------------------
 
 if __name__ == "__main__":
     app.run(debug=True)
