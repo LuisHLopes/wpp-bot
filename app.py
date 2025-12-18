@@ -1,4 +1,4 @@
-# app.py — WhatsApp bot (Flask + Twilio) — Decision Tree + DB (SAFE)
+# app.py — WhatsApp bot (Flask + Twilio) — CLEAN VERSION
 
 import logging
 from flask import Flask, request
@@ -70,7 +70,7 @@ def whatsapp_bot():
             return str(response)
 
         # ------------------------
-        # DECISION TREE (STATE FIRST)
+        # STATE MACHINE
         # ------------------------
 
         if state == STATE_MENU:
@@ -83,37 +83,35 @@ def whatsapp_bot():
                 )
                 return str(response)
 
-            elif incoming_lower == "2":
+            if incoming_lower == "2":
                 create_support_ticket(phone)
                 log_flow_event(phone, "SUPPORT_START")
                 set_user_state(phone, STATE_SUPPORT_DESC)
                 msg.body("🛠 Descreva seu problema, por favor.")
                 return str(response)
 
-            elif incoming_lower == "3":
+            if incoming_lower == "3":
                 set_user_state(phone, None)
                 msg.body("👤 Um atendente humano entrará em contato.")
                 return str(response)
 
-            else:
-                msg.body("❗ Por favor, escolha 1, 2 ou 3.")
-                return str(response)
+            msg.body("❗ Por favor, escolha 1, 2 ou 3.")
+            return str(response)
 
-        elif state == STATE_SUPPORT_DESC:
+        if state == STATE_SUPPORT_DESC:
             save_support_description(phone, incoming_msg)
             log_flow_event(phone, "SUPPORT_DESCRIPTION")
             set_user_state(phone, STATE_SUPPORT_URGENCY)
-            msg.body("⚠️ Qual a urgência do problema? (baixa / média / alta)")
+            msg.body("⚠️ Qual a urgência? (baixa / média / alta)")
             return str(response)
 
-        elif state == STATE_SUPPORT_URGENCY:
-            urgency = incoming_lower
-            if urgency not in ("baixa", "media", "média", "alta"):
+        if state == STATE_SUPPORT_URGENCY:
+            if incoming_lower not in ("baixa", "media", "média", "alta"):
                 msg.body("Por favor, responda com: baixa, média ou alta.")
                 return str(response)
 
-            save_support_urgency(phone, urgency)
-            log_flow_event(phone, "SUPPORT_URGENCY", urgency)
+            save_support_urgency(phone, incoming_lower)
+            log_flow_event(phone, "SUPPORT_URGENCY", incoming_lower)
             log_flow_event(phone, "SUPPORT_DONE")
             set_user_state(phone, None)
 
@@ -121,14 +119,11 @@ def whatsapp_bot():
             return str(response)
 
         # ------------------------
-        # INTENT DETECTION (ONLY IF NO STATE)
+        # INTENT HANDLING (NO STATE)
         # ------------------------
 
-        intent, confidence = detect_intent(incoming_msg)
-        logging.info(f"INTENT={intent} CONFIDENCE={confidence}")
-
-        if confidence < 0.25:
-            intent = None
+        intent = detect_intent(incoming_msg)
+        logging.info(f"INTENT={intent}")
 
         if intent == "GREETING":
             msg.body("Olá! 👋 Digite *menu* para ver as opções.")
@@ -167,12 +162,10 @@ def whatsapp_bot():
         return str(response)
 
     except Exception as e:
-        logging.exception("❌ ERROR processing message")
-        msg.body(
-            "⚠️ Ocorreu um erro temporário.\n"
-            "Por favor, digite *menu* para tentar novamente."
-        )
+        logging.exception("🔥 ERROR processing message")
+        msg.body("⚠️ Ocorreu um erro interno. Tente novamente em instantes.")
         return str(response)
+
 
 # ------------------------
 # Run
