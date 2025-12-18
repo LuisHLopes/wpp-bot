@@ -1,4 +1,5 @@
-# intents.py
+# intents.py — clean & deterministic
+
 import re
 import unicodedata
 
@@ -13,20 +14,37 @@ def normalize(text: str) -> str:
 
 INTENTS = {
     "GREETING": [
-        "oi", "ola", "bom dia", "boa tarde", "boa noite"
+        "oi",
+        "ola",
+        "bom dia",
+        "boa tarde",
+        "boa noite",
     ],
     "SERVICES": [
-        "servicos", "servico", "oferecem", "oferece",
-        "o que voces oferecem", "quais servicos"
+        "servicos",
+        "servico",
+        "oferecem",
+        "o que voces oferecem",
+        "quais servicos",
     ],
     "PRICING": [
-        "preco", "precos", "valor", "valores", "quanto custa"
+        "preco",
+        "precos",
+        "valor",
+        "valores",
+        "quanto custa",
     ],
     "SUPPORT": [
-        "suporte", "ajuda", "problema", "erro"
+        "suporte",
+        "ajuda",
+        "problema",
+        "erro",
     ],
     "HUMAN": [
-        "humano", "atendente", "pessoa", "falar com alguem"
+        "humano",
+        "atendente",
+        "pessoa",
+        "falar com alguem",
     ],
 }
 
@@ -37,6 +55,6 @@ def detect_intent(text: str):
     for intent, patterns in INTENTS.items():
         for pattern in patterns:
             if pattern in normalized:
-                return intent
+                return intent, 1.0
 
-    return None
+    return None, 0.0
