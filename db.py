@@ -103,14 +103,18 @@ def save_support_description(phone, description):
         """
         UPDATE support_tickets
         SET description = ?
-        WHERE phone = ?
-        ORDER BY id DESC
-        LIMIT 1
+        WHERE id = (
+            SELECT id FROM support_tickets
+            WHERE phone = ?
+            ORDER BY id DESC
+            LIMIT 1
+        )
         """,
         (description, phone)
     )
     conn.commit()
     conn.close()
+
 
 
 def save_support_urgency(phone, urgency):
@@ -120,9 +124,12 @@ def save_support_urgency(phone, urgency):
         """
         UPDATE support_tickets
         SET urgency = ?
-        WHERE phone = ?
-        ORDER BY id DESC
-        LIMIT 1
+        WHERE id = (
+            SELECT id FROM support_tickets
+            WHERE phone = ?
+            ORDER BY id DESC
+            LIMIT 1
+        )
         """,
         (urgency, phone)
     )
