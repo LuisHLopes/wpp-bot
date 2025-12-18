@@ -1,4 +1,4 @@
-# app.py — WhatsApp bot (Flask + Twilio) — CLEAN VERSION
+# app.py — WhatsApp bot (Flask + Twilio) — STABLE VERSION
 
 import logging
 from flask import Flask, request
@@ -70,7 +70,7 @@ def whatsapp_bot():
             return str(response)
 
         # ------------------------
-        # STATE MACHINE
+        # STATE: MENU
         # ------------------------
 
         if state == STATE_MENU:
@@ -95,15 +95,25 @@ def whatsapp_bot():
                 msg.body("👤 Um atendente humano entrará em contato.")
                 return str(response)
 
+            # fallback seguro no menu
             msg.body("❗ Por favor, escolha 1, 2 ou 3.")
             return str(response)
+
+        # ------------------------
+        # STATE: SUPPORT DESC
+        # ------------------------
 
         if state == STATE_SUPPORT_DESC:
             save_support_description(phone, incoming_msg)
             log_flow_event(phone, "SUPPORT_DESCRIPTION")
             set_user_state(phone, STATE_SUPPORT_URGENCY)
-            msg.body("⚠️ Qual a urgência? (baixa / média / alta)")
+
+            msg.body("⚠️ Qual a urgência do problema? (baixa / média / alta)")
             return str(response)
+
+        # ------------------------
+        # STATE: SUPPORT URGENCY
+        # ------------------------
 
         if state == STATE_SUPPORT_URGENCY:
             if incoming_lower not in ("baixa", "media", "média", "alta"):
@@ -113,17 +123,20 @@ def whatsapp_bot():
             save_support_urgency(phone, incoming_lower)
             log_flow_event(phone, "SUPPORT_URGENCY", incoming_lower)
             log_flow_event(phone, "SUPPORT_DONE")
-            set_user_state(phone, None)
 
+            set_user_state(phone, None)
             msg.body("✅ Chamado registrado com sucesso!")
             return str(response)
 
         # ------------------------
-        # INTENT HANDLING (NO STATE)
+        # INTENTS (NO STATE)
         # ------------------------
 
-        intent = detect_intent(incoming_msg)
-        logging.info(f"INTENT={intent}")
+        intent, confidence = detect_intent(incoming_msg)
+        logging.info(f"INTENT={intent} CONFIDENCE={confidence}")
+
+        if confidence < 0.25:
+            intent = None
 
         if intent == "GREETING":
             msg.body("Olá! 👋 Digite *menu* para ver as opções.")
@@ -162,8 +175,11 @@ def whatsapp_bot():
         return str(response)
 
     except Exception as e:
-        logging.exception("🔥 ERROR processing message")
-        msg.body("⚠️ Ocorreu um erro interno. Tente novamente em instantes.")
+        logging.exception("Unhandled error")
+        msg.body(
+            "⚠️ Ocorreu um erro inesperado.\n"
+            "Por favor, tente novamente em alguns instantes."
+        )
         return str(response)
 
 
@@ -172,4 +188,4 @@ def whatsapp_bot():
 # ------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
