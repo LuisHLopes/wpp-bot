@@ -1,0 +1,6 @@
+wpp_bot/
+├── app.py              # fluxo
+├── intents.py          # NLP simples
+├── db.py               # estado + analytics
+├── decision_tree.py    # (opcional, depois)
+├── chat.db
